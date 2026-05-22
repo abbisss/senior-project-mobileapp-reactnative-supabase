@@ -1,0 +1,22 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "app/place/[id].jsx",
+    "app/tabs/home.jsx",
+    "app/tabs/_layout.jsx",
+    "app/tabs/profile.jsx",
+    "app/index.jsx",
+    "src/components/place/place_card.jsx",
+    "app/tabs/favorites.jsx"
+  ]
+}
