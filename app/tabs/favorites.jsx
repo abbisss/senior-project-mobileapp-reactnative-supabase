@@ -107,7 +107,7 @@ export default function Favorites() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor:"#86cc80", marginTop:0 }}
+      style={{ flex: 1, backgroundColor:"#86cc80"}}
       edges={["top"]}
     >
       <LinearGradient
@@ -116,8 +116,8 @@ export default function Favorites() {
         end={{ x: 1, y: 1 }}
         style={{
           paddingHorizontal: 22,
-          paddingTop: 30,
-          marginTop:-28,
+          paddingTop: 35,
+          marginTop:-35,
           paddingBottom: 24,
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,

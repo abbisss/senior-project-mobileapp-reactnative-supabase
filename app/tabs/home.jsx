@@ -11,12 +11,15 @@ import {
   Text,
   TextInput,
   View,
-  FlatList
+  FlatList,
+  RefreshControl,
+  LogBox
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PlaceCard from "../../src/components/place/place_card";
 import { UserContext } from "../../src/contexts/UserContext";
 import { handleUrlParams } from "expo-router/build/fork/getStateFromPath-forks";
+
 const placeTypes = [
   { value: "all", label: "All 🌍" },
   { value: "river", label: "River 🚣" },
@@ -33,6 +36,10 @@ const placeTypes = [
   { value: "religious", label: "Religious ⛪" },
 ];
 
+LogBox.ignoreLogs([
+  "VirtualizedLists should never be nested inside plain ScrollViews",
+]);
+
 export default function Home() {
   const { dbUser } = useContext(UserContext);
   const hour = new Date().getHours();
@@ -42,11 +49,14 @@ export default function Home() {
 
   const [selectedPlaceType, setSelectedPlaceType] = useState("all");
   const [places, setPlaces] = useState([]);
+  const [randomPlaces, setRandomPlaces] = useState([]);
   const [place_loading, setPlaceLoading] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [difficulty, setDifficulty] = useState(0);
   const difficultyLevels = ["no choice", "easy", "medium", "hard"];
   const [showAddPlace, setShowAddPlace] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [refreshing, setRefreshing] = useState(false);
 
   const sliderRef = useRef(null);
 
@@ -86,6 +96,17 @@ export default function Home() {
     setPlaces(data ?? []);
   }
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+
+    await fetchPlaces(searchName, selectedPlaceType, difficulty);
+    setDifficulty(0)
+    setSearchName("")
+    setSelectedPlaceType("all")
+
+    setRefreshing(false);
+  };
+
   useEffect(() => {
 
     fetchPlaces(searchName, selectedPlaceType, difficulty);
@@ -93,13 +114,17 @@ export default function Home() {
   }, [selectedPlaceType, difficulty, searchName]);
 
   useEffect(() => {
+    const shuffled = [...places].sort(() => Math.random() - 0.5);
+    setRandomPlaces(shuffled);
+  }, [places]);
+
+  useEffect(() => {
+    //if placecards are in horizontal mode
     sliderRef.current?.scrollToOffset({
       offset: 0,
       animated: true,
     });
   }, [selectedPlaceType, difficulty, searchName]);
-
-
 
   useEffect(() => {
     const updateLastLogin = async () => {
@@ -119,13 +144,15 @@ export default function Home() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#1e5c1e" }}
+      style={{ flex: 1 }}
       edges={["top"]}
     >
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#86cc80" }}
-        contentContainerStyle={{}}
+        style={{ flex: 1, backgroundColor: "#86cc80", marginTop:-35 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <LinearGradient
           colors={["#1e5c1e", "#2b7d2b", "#1e8030"]}
@@ -133,7 +160,7 @@ export default function Home() {
           end={{ x: 1, y: 1 }}
           style={{
             paddingHorizontal: 22,
-            paddingTop: 16,
+            paddingTop: 35,
             paddingBottom: 30,
             borderBottomLeftRadius: 28,
             borderBottomRightRadius: 28,
@@ -376,13 +403,26 @@ export default function Home() {
           />
           <FlatList
             ref={sliderRef}
-            data={places}
-            horizontal
+            data={randomPlaces.slice(0, visibleCount)}
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.place_id}
-            renderItem={({ item }) => <PlaceCard place={item} onUnFavorite={handleUrlParams}CardWidth={220} ImageHeight={140} />}
-            contentContainerStyle={{ paddingTop: 10 }}
+            renderItem={({ item }) => <View style={{ marginTop: 8 }}><PlaceCard place={item} onUnFavorite={handleUrlParams} CardWidth={350} ImageHeight={180} /></View>}
             style={{ marginTop: 18, marginBottom: 30 }}
+            ListFooterComponent={
+              randomPlaces.length > visibleCount ? (
+                <Pressable
+                  onPress={() => setVisibleCount(prev => prev + 10)}
+                  style={{
+                    padding: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#2d9c2d", fontWeight: "bold" }}>
+                    Show More
+                  </Text>
+                </Pressable>
+              ) : null
+            }
             ListEmptyComponent={
               place_loading ? (
                 <View style={{ alignItems: "center", marginTop: 20 }}>
@@ -391,7 +431,7 @@ export default function Home() {
                     Loading places...
                   </Text>
                 </View>
-              ) : (
+              ) : places.length === 0 ? (
                 <Text
                   style={{
                     color: "#777",
@@ -402,7 +442,7 @@ export default function Home() {
                 >
                   No places found.
                 </Text>
-              )
+              ) : null
             }
           />
         </View>

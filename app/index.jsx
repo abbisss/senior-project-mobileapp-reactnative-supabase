@@ -242,7 +242,7 @@ export default function Index() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#1e5c1e" }}
+      style={{ flex: 1, backgroundColor: "#1e5c1e", marginTop:-34 }}
       edges={["top"]}
     >
       <ScrollView
