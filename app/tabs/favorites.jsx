@@ -1,10 +1,10 @@
-import { supabase } from "@/src/lib/supabase-client";
 import PlaceCard from "@/src/components/place/place_card";
 import ServiceCard from "@/src/components/service/service_card";
 import { UserContext } from "@/src/contexts/UserContext";
+import { supabase } from "@/src/lib/supabase-client";
 import { LinearGradient } from "expo-linear-gradient";
-import { useContext, useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -37,7 +37,7 @@ export default function Favorites() {
         )
       `
       )
-      .eq("user_id", dbUser.user_id);
+      .eq("user_id", dbUser?.user_id);
 
     if (error) {
       console.error("Fetch favorite places error:", error);
@@ -61,7 +61,7 @@ export default function Favorites() {
         )
       `
       )
-      .eq("user_id", dbUser.user_id);
+      .eq("user_id", dbUser?.user_id);
 
     if (error) {
       console.error("Fetch favorite services error:", error);
@@ -85,14 +85,14 @@ export default function Favorites() {
     fetchFavoritePlaces();
     fetchFavoriteServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbUser.user_id]);
+  }, [dbUser?.user_id]);
 
   useFocusEffect(
     useCallback(() => {
       fetchFavoritePlaces();
     fetchFavoriteServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dbUser.user_id])
+    }, [dbUser?.user_id])
   )
 
 
