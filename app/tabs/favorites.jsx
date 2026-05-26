@@ -90,8 +90,8 @@ export default function Favorites() {
   useFocusEffect(
     useCallback(() => {
       fetchFavoritePlaces();
-    fetchFavoriteServices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      fetchFavoriteServices();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dbUser?.user_id])
   )
 
@@ -107,8 +107,9 @@ export default function Favorites() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor:"#86cc80"}}
+      style={{ flex: 1, backgroundColor: "#1e5c1e" }}
       edges={["top"]}
+      
     >
       <LinearGradient
         colors={["#1e5c1e", "#2b7d2b", "#1e8030"]}
@@ -117,7 +118,7 @@ export default function Favorites() {
         style={{
           paddingHorizontal: 22,
           paddingTop: 35,
-          marginTop:-35,
+          marginTop: -3,
           paddingBottom: 24,
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,
@@ -266,7 +267,7 @@ export default function Favorites() {
             data={favPlaces}
             keyExtractor={(item) => String(item.place_id)}
             renderItem={({ item }) => (
-              <PlaceCard place={item} onUnFavorite={handleUnfavoritePlace} CardWidth={370} ImageHeight={150}  />
+              <PlaceCard place={item} onUnFavorite={handleUnfavoritePlace} CardWidth={370} ImageHeight={150} />
             )}
             contentContainerStyle={{
               paddingHorizontal: 10,
@@ -284,7 +285,7 @@ export default function Favorites() {
               <ServiceCard
                 service={item}
                 onUnFavorite={handleUnfavoriteService}
-                CardWidth={370} ImageHeight={150} 
+                CardWidth={370} ImageHeight={150}
               />
             )}
             contentContainerStyle={{

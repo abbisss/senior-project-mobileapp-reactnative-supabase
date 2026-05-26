@@ -144,11 +144,11 @@ export default function Home() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: "#1e5c1e" }}
       edges={["top"]}
     >
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#86cc80", marginTop:-35 }}
+        style={{ flex: 1, backgroundColor: "#86cc80"}}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -160,7 +160,7 @@ export default function Home() {
           end={{ x: 1, y: 1 }}
           style={{
             paddingHorizontal: 22,
-            paddingTop: 35,
+            paddingTop: 0,
             paddingBottom: 30,
             borderBottomLeftRadius: 28,
             borderBottomRightRadius: 28,

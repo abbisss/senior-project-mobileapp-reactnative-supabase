@@ -33,7 +33,7 @@ function AddPlace({ addPlaceStatus, setAddPlaceStatus }) {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ["images"],
             allowsEditing: true,
-            quality: 1,
+            quality: 0.7,
         });
         if (!result.canceled) {
             setImage(result.assets[0]);

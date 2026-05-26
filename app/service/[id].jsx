@@ -7,6 +7,7 @@ import { useContext, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Dimensions, FlatList,
     Image,
     Platform,
     Pressable,
@@ -15,8 +16,9 @@ import {
     TextInput,
     ToastAndroid,
     TouchableOpacity,
-    View,
+    View, Modal
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 
 
 export default function ServiceDetails() {
@@ -34,6 +36,10 @@ export default function ServiceDetails() {
     const [submittingReview, setSubmittingReview] = useState(false);
     const [reviewExists, setReviewExists] = useState(false);
     const [peopleReviews, setPeopleReviews] = useState([]);
+
+    const [addImage, setAddImage] = useState(false);
+    const [imageIsBeingAdded, setImageisBeingAdded] = useState(false);
+    const [image, setImage] = useState(null);
 
     const showToast = (message) => {
         if (Platform.OS === "android") {
@@ -95,8 +101,10 @@ export default function ServiceDetails() {
         if (!id) return;
         const { data, error } = await supabase
             .from("Service")
-            .select("*, Service_Image (url), User:created_by(name)")
+            .select(`*, Service_Image!inner(url, status),
+                 User:created_by(name)`)
             .eq("service_id", id)
+            .eq("Service_Image.status", "approved")
             .single();
         if (error) {
             console.error("Error fetching service details:", error);
@@ -333,6 +341,69 @@ export default function ServiceDetails() {
     const priceColors = getPriceBadgeStyle(service.price_range);
     const typeLabel = service.type.charAt(0).toUpperCase() + service.type.slice(1);
 
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            quality: 0.7,
+        });
+        if (!result.canceled) {
+            setImage(result.assets[0]);
+        }
+    };
+
+    async function addServiceImages() {
+        if (!image) {
+            Alert.alert("Error", "Image is required");
+            return;
+        }
+        let imageUrl = "";
+        setImageisBeingAdded(true);
+        const fileName = `pictures/${service.name.replace(/\s+/g, "_").toLowerCase()}-${Date.now()}.jpg`;
+
+        const response = await fetch(image.uri);
+        const arrayBuffer = await response.arrayBuffer();
+
+        const { error: uploadError } = await supabase.storage
+            .from("services")
+            .upload(fileName, arrayBuffer, {
+                contentType: "image/jpeg",
+                upsert: true,
+            });
+        if (uploadError) {
+            Alert.alert("Error", "Image upload failed" + uploadError);
+            console.log(uploadError)
+            setImageisBeingAdded(false);
+            return;
+        }
+
+        const { data: publicData } = supabase.storage
+            .from("services")
+            .getPublicUrl(fileName);
+
+        imageUrl = publicData.publicUrl;
+        const { error: imageError } = await supabase
+            .from("Service_Image")
+            .insert([
+                {
+                    url: imageUrl,
+                    service_id: id,
+                    status: "pending"
+                },
+            ]);
+
+        if (imageError) {
+            console.error(imageError);
+            Alert.alert("Error", "image failed");
+            setImageisBeingAdded(false);
+            return;
+        }
+
+        Alert.alert("Success", "Image submitted for admin review");
+        setAddImage(false);
+        setImageisBeingAdded(false);
+
+    }
 
 
     return (
@@ -342,90 +413,54 @@ export default function ServiceDetails() {
             <View style={{ position: "relative", width: "100%", height: 250 }}>
                 {imagesUrls.length > 0 && (
                     <>
-                        <Image
-                            source={{ uri: imagesUrls[currentImageIndex] }}
-                            style={{ width: "100%", height: "100%" }}
-                            resizeMode="cover"
-                        />
-                        <View
-                            style={{
-                                borderColor: "#ffffff",
-                                position: "absolute",
-                                top: 30,
-                                left: 20,
-                                padding: 10,
-                                borderRadius: 40,
-                                borderWidth: 2,
+                        <FlatList
+                            data={imagesUrls}
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            keyExtractor={(_, index) => index.toString()}
+                            onMomentumScrollEnd={(e) => {
+                                const index = Math.round(
+                                    e.nativeEvent.contentOffset.x /
+                                    e.nativeEvent.layoutMeasurement.width
+                                );
+                                setCurrentImageIndex(index);
                             }}
-                        >
+                            renderItem={({ item }) => (
+                                <Image
+                                    source={{ uri: item }}
+                                    style={{ width: Dimensions.get("window").width, height: 250 }}
+                                    resizeMode="cover"
+                                />
+                            )}
+                        />
+
+                        {/* Back Button */}
+                        <View style={{
+                            borderColor: "#ffffff", position: "absolute", top: 30, left: 20,
+                            padding: 10, borderRadius: 40, borderWidth: 2
+                        }}>
                             <Pressable onPress={() => router.back()}>
                                 <Ionicons name="arrow-back" size={15} color="white" />
                             </Pressable>
                         </View>
 
-                        <View
-                            style={{
-                                position: "absolute",
-                                top: 30,
-                                right: 10,
-                                backgroundColor: "rgba(255,255,255,0.7)",
-                                paddingHorizontal: 10,
-                                borderRadius: 10,
-                            }}
-                        >
+                        {/* Image Counter */}
+                        <View style={{
+                            position: "absolute",
+                            top: 30,
+                            right: 10,
+                            backgroundColor: "rgba(255,255,255,0.7)",
+                            paddingHorizontal: 10,
+                            borderRadius: 10,
+                        }}>
                             <Text style={{ color: "#000", fontSize: 14 }}>
                                 {currentImageIndex + 1} / {imagesUrls.length}
                             </Text>
                         </View>
-
-                        {imagesUrls.length > 1 && (
-                            <>
-                                <TouchableOpacity
-                                    onPress={() =>
-                                        setCurrentImageIndex((prev) =>
-                                            prev === 0 ? imagesUrls.length - 1 : prev - 1
-                                        )
-                                    }
-                                    style={{
-                                        position: "absolute",
-                                        left: 10,
-                                        top: "50%",
-                                        backgroundColor: "rgba(255,255,255,0.6)",
-                                        borderRadius: 15,
-                                        width: 30,
-                                        height: 30,
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <Text style={{ fontSize: 18, color: "#000" }}>❮</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() =>
-                                        setCurrentImageIndex((prev) =>
-                                            prev === imagesUrls.length - 1 ? 0 : prev + 1
-                                        )
-                                    }
-                                    style={{
-                                        position: "absolute",
-                                        right: 10,
-                                        top: "50%",
-                                        backgroundColor: "rgba(255,255,255,0.6)",
-                                        borderRadius: 15,
-                                        width: 30,
-                                        height: 30,
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <Text style={{ fontSize: 18, color: "#000" }}>❯</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
                     </>
                 )}
             </View>
-
             <View
                 style={{
                     flexDirection: "row",
@@ -593,7 +628,7 @@ export default function ServiceDetails() {
                 </View>
             )}
 
-            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginHorizontal: 15, marginTop: 15, gap: 10 }}>
+            <View style={{ display: "flex", flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginHorizontal: 15, marginTop: 15, gap: 2 }}>
                 <TouchableOpacity
                     onPress={toggleFavorite}
                     style={{
@@ -625,6 +660,132 @@ export default function ServiceDetails() {
                         {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                     </Text>
                 </TouchableOpacity>
+
+                <Pressable
+                    onPress={() => setAddImage(true)}
+                    style={{
+                        marginTop: 10,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        backgroundColor: "#14c214",
+                        borderRadius: 14,
+                        paddingVertical: 13,
+                        paddingHorizontal: 15,
+                        shadowColor: "#1feb1f",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                    }}
+                >
+                    <Ionicons name="images-outline" size={18} color="#fff" />
+                    <Text style={{ fontWeight: "700", fontSize: 15, color: "#fff", letterSpacing: 0.3 }}>
+                        Add more pics
+                    </Text>
+                </Pressable>
+
+
+                <Modal
+                    visible={addImage}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setAddImage(false)}
+                >
+                    <View style={{
+                        flex: 1,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        justifyContent: "flex-end",
+                    }}>
+                        <View style={{
+                            backgroundColor: "#fff",
+                            borderTopLeftRadius: 24,
+                            borderTopRightRadius: 24,
+                            padding: 24,
+                            paddingBottom: 40,
+                        }}>
+
+                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                                <Text style={{ fontSize: 18, fontWeight: "700", color: "#111" }}>Add a photo</Text>
+                                <TouchableOpacity
+                                    onPress={() => setAddImage(false)}
+                                    style={{
+                                        backgroundColor: "#f2f2f2",
+                                        borderRadius: 20,
+                                        padding: 6,
+                                    }}
+                                >
+                                    <Ionicons name="close" size={20} color="#333" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={pickImage}
+                                style={{
+                                    borderWidth: 1.5,
+                                    borderColor: image ? "transparent" : "#d0d0d0",
+                                    borderStyle: image ? "solid" : "dashed",
+                                    borderRadius: 16,
+                                    height: 200,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    backgroundColor: image ? "transparent" : "#fafafa",
+                                    overflow: "hidden",
+                                    marginBottom: 20,
+                                }}
+                            >
+                                {!image ? (
+                                    <View style={{ alignItems: "center", gap: 10 }}>
+                                        <View style={{
+                                            backgroundColor: "#eef2ff",
+                                            borderRadius: 50,
+                                            padding: 14,
+                                        }}>
+                                            <Ionicons name="image-outline" size={28} color="#4f46e5" />
+                                        </View>
+                                        <Text style={{ fontWeight: "600", color: "#333", fontSize: 15 }}>Tap to upload a photo</Text>
+                                        <Text style={{ color: "#999", fontSize: 13, textAlign: "center", paddingHorizontal: 20 }}>
+                                            You can add more photos after saving the place
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <>
+                                        <Image source={{ uri: image.uri }} style={{ width: "100%", height: "100%" }} />
+                                        <View style={{
+                                            position: "absolute", bottom: 10, right: 10,
+                                            backgroundColor: "rgba(0,0,0,0.5)",
+                                            borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4
+                                        }}>
+                                            <Text style={{ color: "#fff", fontSize: 12 }}>Tap to change</Text>
+                                        </View>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+
+                            <Pressable
+                                onPress={addServiceImages}
+                                disabled={imageIsBeingAdded || !image}
+                                style={{
+                                    backgroundColor: imageIsBeingAdded || !image ? "#c7c7c7" : "#4f46e5",
+                                    borderRadius: 14,
+                                    paddingVertical: 15,
+                                    alignItems: "center",
+                                }}
+                            >
+                                {imageIsBeingAdded ? (
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                        <ActivityIndicator size="small" color="#fff" />
+                                        <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>Uploading...</Text>
+                                    </View>
+                                ) : (
+                                    <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>Add Image</Text>
+                                )}
+                            </Pressable>
+
+                        </View>
+                    </View>
+                </Modal>
 
             </View>
 
