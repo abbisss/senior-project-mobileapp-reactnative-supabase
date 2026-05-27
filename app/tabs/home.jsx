@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import PlaceCard from "../../src/components/place/place_card";
 import { UserContext } from "../../src/contexts/UserContext";
 import { handleUrlParams } from "expo-router/build/fork/getStateFromPath-forks";
+import * as Location from "expo-location";
 
 const placeTypes = [
   { value: "all", label: "All 🌍" },
@@ -59,6 +60,8 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
 
   const sliderRef = useRef(null);
+
+  const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
   async function fetchPlaces(name, type, difficulty) {
     setPlaceLoading(true);
@@ -107,6 +110,40 @@ export default function Home() {
     setRefreshing(false);
   };
 
+  const fetchNearbyPlaces = async (lat, lng) => {
+    const { data, error } = await supabase.rpc("nearby_places", {
+      user_lat: lat,
+      user_lng: lng,
+      radius_km: 20,
+    });
+
+    if (error) console.error(error);
+    return data;
+  };
+
+  const getNearbyPlaces = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      // Fallback to Beirut
+      const data = await fetchNearbyPlaces(33.8938, 35.5018);
+      setNearbyPlaces(data);
+      return;
+    }
+
+    const location = await Location.getCurrentPositionAsync({});
+    const data = await fetchNearbyPlaces(
+      location.coords.latitude,
+      location.coords.longitude
+    );
+    setNearbyPlaces(data);
+  };
+
+  useEffect(() => {
+    getNearbyPlaces();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
 
     fetchPlaces(searchName, selectedPlaceType, difficulty);
@@ -148,7 +185,7 @@ export default function Home() {
       edges={["top"]}
     >
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#86cc80"}}
+        style={{ flex: 1, backgroundColor: "#86cc80" }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -473,7 +510,30 @@ export default function Home() {
             padding: 5,
           }}>Suggest new place</Text></Pressable>
         </View>
+
         {showAddPlace && (<AddPlace addPlaceStatus={showAddPlace} setAddPlaceStatus={setShowAddPlace} />)}
+
+        {!place_loading && nearbyPlaces.length !== 0 && (<View
+          style={{ marginHorizontal: 10, marginBottom: 10 }}
+        >
+          <Text
+            style={{
+              color: "#000000",
+              fontSize: 24,
+              fontFamily: "Inter_400Regular",
+              fontWeight: "bold",
+              marginTop: 12,
+            }}
+          >
+            Nearby Places
+          </Text>
+          <FlatList
+            horizontal
+            data={nearbyPlaces}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => <View style={{ marginTop: 8 }}><PlaceCard place={item} onUnFavorite={handleUrlParams} CardWidth={200} ImageHeight={150} /></View>}
+          />
+        </View>)}
       </ScrollView>
     </SafeAreaView>
   );
