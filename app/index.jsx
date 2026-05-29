@@ -52,8 +52,8 @@ export default function Index() {
   const [loginMode, setLoginMode] = useState(true);
   const [registerMode, setRegisterMode] = useState(false);
 
-  const [email, setEmail] = useState("abbasscodingpc2@gmail.com");
-  const [password, setPassword] = useState("abbass123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);

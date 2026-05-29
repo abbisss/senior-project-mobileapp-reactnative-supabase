@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
+import { Tabs } from "expo-router";
 
 export default function TabsLayout() {
   return (
@@ -37,6 +37,16 @@ export default function TabsLayout() {
           title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
+
+       <Tabs.Screen
+        name="ai_trips"
+        options={{
+          title: "AI Trips",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles" size={size} color={color} />
           ),
         }}
       />

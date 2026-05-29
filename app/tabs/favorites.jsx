@@ -10,7 +10,7 @@ import {
   FlatList,
   Pressable,
   Text,
-  View,
+  View, ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -111,6 +111,9 @@ export default function Favorites() {
       edges={["top"]}
       
     >
+      <ScrollView
+                style={{ flex: 1, backgroundColor: "#86cc80" }}
+            >
       <LinearGradient
         colors={["#1e5c1e", "#2b7d2b", "#1e8030"]}
         start={{ x: 0, y: 0 }}
@@ -298,6 +301,7 @@ export default function Favorites() {
           />
         )}
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
