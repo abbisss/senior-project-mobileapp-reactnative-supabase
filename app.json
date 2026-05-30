@@ -47,7 +47,8 @@
     },
     "extra": {
       "SUPABASE_URL": "https://qwtxlgzjjtjdohmnsuly.supabase.co",
-      "SUPABASE_ANON_KEY": "sb_publishable_VZltKx1Ssl0zWgAygt1E3A_Djs3ZQrx"
+      "SUPABASE_ANON_KEY": "sb_publishable_VZltKx1Ssl0zWgAygt1E3A_Djs3ZQrx",
+      "GEMINI_API_KEY": "AIzaSyD-cEcpTFAppEs_xQsOZN2JKThY24SdTB8"
     }
   }
 }

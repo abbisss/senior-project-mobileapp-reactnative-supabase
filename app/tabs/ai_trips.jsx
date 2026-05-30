@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 // eslint-disable-next-line import/no-named-as-default
 import Checkbox from "expo-checkbox";
+import { generateAITrip } from "../../src/services/ai_trip";
 
 const placeTypes = [
     { value: "all", label: "All 🌍" },
@@ -110,6 +111,13 @@ export default function AI_Trips() {
     const [selectedTripStyle, setSelectedTripStyle] = useState("any");
 
     const [submitting, setSubmitting] = useState(false);
+    // eslint-disable-next-line no-unused-vars
+    const [tripInput, setTripInput] = useState({
+        places: [],
+        services: [],
+        duration: 2,
+        tripStyle: "any",
+    });
 
     const toggleServiceType = (value) => {
         setSelectedServiceTypes((prev) =>
@@ -133,12 +141,23 @@ export default function AI_Trips() {
             setSubmitting(false);
             return null;
         }
+        
+        const freshTripInput = {
+            places: data.places ?? [],
+            services: data.services ?? [],
+            duration,
+            tripStyle: selectedTripStyle,
+        };
 
+        setTripInput(freshTripInput);
         setSubmitting(false);
-        const placeNames = data.places.map(p => p.name);
-        const serviceNames = data.services.map(s => s.name);
-        console.log('Places:', placeNames, 'Services:', serviceNames);
-        return data;
+
+        const trip = await generateAITrip(freshTripInput);
+        if (!trip) {
+            console.warn("Trip generation failed or returned null");
+            return;
+        }
+        console.log("Generated trip:", trip.map(item => `${item.type}:${item.id}`).join(" → "));
     };
 
     return (
@@ -268,7 +287,7 @@ export default function AI_Trips() {
                 )}
 
                 {activeTab === "discover" && (
-                    <View style={{ flex: 1, marginTop: 10, gap:12 }}>
+                    <View style={{ flex: 1, marginTop: 10, gap: 12 }}>
                         <Text
                             style={{ marginHorizontal: 13, fontFamily: "monospace", fontWeight: "bold" }}
                         >Places types</Text>
@@ -371,7 +390,7 @@ export default function AI_Trips() {
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{paddingHorizontal: 12 }}
+                            contentContainerStyle={{ paddingHorizontal: 12 }}
                         >
                             {governorates.map((item) => {
                                 const active = selectedGovernonates.includes(item.value);
